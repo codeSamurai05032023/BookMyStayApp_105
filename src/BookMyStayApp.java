@@ -1,83 +1,113 @@
-import java.util.LinkedList;
-import java.util.Queue;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * DOMAIN MODEL - Reservation
- * Represents a guest's intent to book a room.
+ * ABSTRACT CLASS - Room
+ * Represents the domain model for a hotel room.
  */
-class Reservation {
-    private String guestName;
-    private String roomType;
+abstract class Room {
+    protected int numberOfBeds;
+    protected int squareFeet;
+    protected double pricePerNight;
 
-    public Reservation(String guestName, String roomType) {
-        this.guestName = guestName;
-        this.roomType = roomType;
+    public Room(int numberOfBeds, int squareFeet, double pricePerNight) {
+        this.numberOfBeds = numberOfBeds;
+        this.squareFeet = squareFeet;
+        this.pricePerNight = pricePerNight;
     }
 
-    public String getGuestName() { return guestName; }
-    public String getRoomType() { return roomType; }
-
-    @Override
-    public String toString() {
-        return "Reservation [Guest: " + guestName + ", Room Type: " + roomType + " Room]";
+    public void displayRoomDetails() {
+        System.out.print("Beds: " + numberOfBeds + " | Size: " + squareFeet + " sqft | Price: " + pricePerNight);
     }
 }
 
+class SingleRoom extends Room { public SingleRoom() { super(1, 250, 1500.0); } }
+class DoubleRoom extends Room { public DoubleRoom() { super(2, 400, 2500.0); } }
+class SuiteRoom extends Room { public SuiteRoom() { super(3, 750, 5000.0); } }
+
 /**
- * SERVICE - BookingRequestQueue
- * Manages incoming requests using a FIFO Queue.
+ * INVENTORY MANAGEMENT - RoomInventory
+ * Acts as the "Single Source of Truth" using a HashMap for O(1) lookup.
  */
-class BookingRequestQueue {
-    // Using LinkedList as the implementation for the Queue interface
-    private Queue<Reservation> queue;
+class RoomInventory {
+    // Key: Room Type (String), Value: Count (Integer)
+    private Map<String, Integer> inventory;
 
-    public BookingRequestQueue() {
-        this.queue = new LinkedList<>();
+    public RoomInventory() {
+        this.inventory = new HashMap<>();
     }
 
     /**
-     * Accepts a booking request and adds it to the back of the line.
+     * Registers or updates room counts in the centralized map.
      */
-    public void addRequest(Reservation reservation) {
-        queue.offer(reservation); // .offer() safely adds to the tail of the queue
-        System.out.println("Request Received -> " + reservation.getGuestName() + " wants a " + reservation.getRoomType() + " Room.");
+    public void updateInventory(String roomType, int count) {
+        inventory.put(roomType, count);
     }
 
     /**
-     * Displays all pending requests in exact arrival order.
+     * Retrieves current availability for a specific room type.
      */
-    public void displayPendingRequests() {
-        System.out.println("\n--- Pending Booking Requests (FIFO Order) ---");
-        if (queue.isEmpty()) {
-            System.out.println("The queue is currently empty.");
-        } else {
-            for (Reservation res : queue) {
-                System.out.println(res.toString());
-            }
+    public int getAvailability(String roomType) {
+        return inventory.getOrDefault(roomType, 0);
+    }
+
+    /**
+     * Displays the full state of the inventory.
+     */
+    public void displayInventory() {
+        System.out.println("--- Current Inventory Status ---");
+        for (Map.Entry<String, Integer> entry : inventory.entrySet()) {
+            System.out.println(entry.getKey() + ": " + entry.getValue() + " rooms available");
         }
     }
 }
 
 /**
  * MAIN CLASS - BookMyStayApp
- * Application Entry Point
+ * Version 3.1: Centralized Inventory Refactor
+ * @author CodeSamurai05032023
+ * @version 3.1
  */
 public class BookMyStayApp {
     public static void main(String[] args) {
-        System.out.println("System Initialized. Accepting incoming traffic...\n");
+        System.out.println("BookMyStayApp - System Startup [Version 3.1]");
+        System.out.println("Refactoring: Moving to Centralized HashMap Inventory\n");
 
-        // 1. Initialize the Queue Service
-        BookingRequestQueue bookingQueue = new BookingRequestQueue();
+        // 1. Initialize Inventory Component
+        RoomInventory hotelInventory = new RoomInventory();
 
-        // 2. Simulate simultaneous booking requests arriving
-        bookingQueue.addRequest(new Reservation("Alice", "Suite"));
-        bookingQueue.addRequest(new Reservation("Bob", "Single"));
-        bookingQueue.addRequest(new Reservation("Charlie", "Double"));
-        bookingQueue.addRequest(new Reservation("Diana", "Single"));
+        // 2. Register Room Types (Populating the HashMap)
+        hotelInventory.updateInventory("Single", 5);
+        hotelInventory.updateInventory("Double", 3);
+        hotelInventory.updateInventory("Suite", 2);
 
-        // 3. Display the queue to verify FIFO ordering
-        bookingQueue.displayPendingRequests();
+        // 3. Initialize Domain Models for display
+        Room single = new SingleRoom();
+        Room doubleRm = new DoubleRoom();
+        Room suite = new SuiteRoom();
 
-        System.out.println("\n[Note: Requests are queued. No inventory has been mutated yet.]");
+        // 4. Display Room Details and cross-reference with Centralized Inventory
+        System.out.println("--- Room Specifications ---");
+
+        System.out.print("Type: Single | ");
+        single.displayRoomDetails();
+        System.out.println(" | Available: " + hotelInventory.getAvailability("Single"));
+
+        System.out.print("Type: Double | ");
+        doubleRm.displayRoomDetails();
+        System.out.println(" | Available: " + hotelInventory.getAvailability("Double"));
+
+        System.out.print("Type: Suite  | ");
+        suite.displayRoomDetails();
+        System.out.println(" | Available: " + hotelInventory.getAvailability("Suite"));
+
+        System.out.println();
+
+        // 5. Demonstrate controlled updates (e.g., after a booking)
+        System.out.println("Updating Inventory: 1 Single Room Booked...");
+        hotelInventory.updateInventory("Single", hotelInventory.getAvailability("Single") - 1);
+
+        // 6. Final State Check
+        hotelInventory.displayInventory();
     }
 }
