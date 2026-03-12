@@ -50,7 +50,11 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
+<<<<<<< HEAD
     "git-widget-placeholder": "feature/UC6",
+=======
+    "git-widget-placeholder": "feature/UC7",
+>>>>>>> feature/UC7
     "kotlin-language-version-configured": "true"
   }
 }]]></component>
