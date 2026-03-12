@@ -1,61 +1,57 @@
 import java.util.*;
 
 /**
- * CUSTOM EXCEPTION - InvalidBookingException
+ * SERVICE - CancellationService
+ * Handles LIFO rollback logic using a Stack.
  */
-class InvalidBookingException extends Exception {
-    public InvalidBookingException(String message) {
-        super(message);
+class CancellationService {
+    // Stack tracks released room IDs (Last-In-First-Out)
+    private Stack<String> releasedRoomIDs = new Stack<>();
+    private Map<String, Integer> inventory;
+
+    public CancellationService(Map<String, Integer> inventory) {
+        this.inventory = inventory;
     }
-}
 
-/**
- * VALIDATOR - BookingValidator
- * Implements "Fail-Fast" design.
- */
-class BookingValidator {
-    private static final List<String> VALID_ROOMS = Arrays.asList("Single", "Double", "Suite");
+    public void cancelBooking(String resId, String roomType, String roomId) {
+        System.out.println("Processing Cancellation for: " + resId);
 
-    public void validate(String roomType, int currentAvailability) throws InvalidBookingException {
-        // 1. Validate Room Type
-        if (!VALID_ROOMS.contains(roomType)) {
-            throw new InvalidBookingException("Error: Room type '" + roomType + "' does not exist in our system.");
-        }
+        // 1. Rollback: Add room ID back to the stack
+        releasedRoomIDs.push(roomId);
 
-        // 2. Prevent Negative Inventory (Guarding System State)
-        if (currentAvailability <= 0) {
-            throw new InvalidBookingException("Error: No " + roomType + " rooms currently available.");
-        }
+        // 2. Inventory Restoration: Increment count
+        inventory.put(roomType, inventory.get(roomType) + 1);
+
+        System.out.println("SUCCESS: Room " + roomId + " returned to pool. " + roomType + " inventory incremented.");
+    }
+
+    public void displayRollbackStatus() {
+        System.out.println("Recent Rooms returned to pool: " + releasedRoomIDs);
     }
 }
 
 public class BookMyStayApp {
     public static void main(String[] args) {
-        System.out.println("--- BookMyStayApp: Version 9.0 (Validation & Error Handling) ---\n");
+        System.out.println("--- BookMyStayApp: Version 10.0 (Cancellation & Rollback) ---\n");
 
-        BookingValidator validator = new BookingValidator();
-
-        // Mocking an inventory state
+        // Initial State
         Map<String, Integer> inventory = new HashMap<>();
-        inventory.put("Single", 1);
-        inventory.put("Double", 0); // No availability for Double
+        inventory.put("Single", 4);
 
-        // Test Scenarios
-        processRequest(validator, "Deluxe", 0);        // Scenario 1: Invalid Room Type
-        processRequest(validator, "Double", 0);        // Scenario 2: Out of Stock
-        processRequest(validator, "Single", 1);        // Scenario 3: Valid Request
+        CancellationService cancelService = new CancellationService(inventory);
 
-        System.out.println("\nSystem: Remained stable after all validation checks.");
-    }
+        // Simulate a Cancellation Request
+        String reservationToCancel = "RES-999";
+        String roomType = "Single";
+        String roomID = "RM-101";
 
-    private static void processRequest(BookingValidator v, String type, int availability) {
-        try {
-            System.out.println("Validating request for: " + type + "...");
-            v.validate(type, availability);
-            System.out.println("SUCCESS: Request is valid. Proceeding to booking.\n");
-        } catch (InvalidBookingException e) {
-            // Graceful failure handling
-            System.err.println("VALIDATION FAILED: " + e.getMessage() + "\n");
-        }
+        System.out.println("Initial Inventory: " + inventory);
+
+        // Execute Rollback
+        cancelService.cancelBooking(reservationToCancel, roomType, roomID);
+
+        // Verify System State
+        System.out.println("Updated Inventory: " + inventory);
+        cancelService.displayRollbackStatus();
     }
 }
