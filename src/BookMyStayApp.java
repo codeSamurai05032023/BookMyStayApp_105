@@ -1,65 +1,74 @@
+import java.io.*;
 import java.util.*;
 
 /**
- * SERVICE - ConcurrentBookingProcessor
- * Handles multiple threads competing for the same inventory.
+ * SERVICE - PersistenceService
+ * Handles saving and loading system state to/from a file.
  */
-class ConcurrentBookingProcessor {
-    private Map<String, Integer> inventory;
+class PersistenceService {
+    private static final String FILE_NAME = "hotel_state.ser";
 
-    public ConcurrentBookingProcessor(Map<String, Integer> inventory) {
-        this.inventory = inventory;
+    /**
+     * SERIALIZATION - Save state to disk
+     */
+    public void saveState(Map<String, Integer> inventory, List<String> history) {
+        try (ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(FILE_NAME))) {
+            oos.writeObject(inventory);
+            oos.writeObject(history);
+            System.out.println("SYSTEM: State successfully persisted to " + FILE_NAME);
+        } catch (IOException e) {
+            System.err.println("ERROR: Could not save state: " + e.getMessage());
+        }
     }
 
     /**
-     * The CRITICAL SECTION
-     * 'synchronized' ensures only one thread can execute this at a time.
+     * DESERIALIZATION - Restore state from disk
      */
-    public synchronized void bookRoom(String guestName, String roomType) {
-        int available = inventory.getOrDefault(roomType, 0);
+    @SuppressWarnings("unchecked")
+    public void loadState(Map<String, Integer> inventory, List<String> history) {
+        File file = new File(FILE_NAME);
+        if (!file.exists()) {
+            System.out.println("SYSTEM: No previous state found. Starting fresh.");
+            return;
+        }
 
-        System.out.println(guestName + " is checking availability for " + roomType + "...");
+        try (ObjectInputStream ois = new ObjectInputStream(new FileInputStream(FILE_NAME))) {
+            Map<String, Integer> loadedInventory = (Map<String, Integer>) ois.readObject();
+            List<String> loadedHistory = (List<String>) ois.readObject();
 
-        if (available > 0) {
-            // Simulate processing time to increase the chance of a race condition
-            try { Thread.sleep(100); } catch (InterruptedException e) {}
-
-            inventory.put(roomType, available - 1);
-            System.out.println("SUCCESS: " + guestName + " booked a " + roomType + ". Remaining: " + (available - 1));
-        } else {
-            System.out.println("FAILURE: " + guestName + " found no " + roomType + " rooms left.");
+            inventory.putAll(loadedInventory);
+            history.addAll(loadedHistory);
+            System.out.println("SYSTEM: State restored successfully from last session.");
+        } catch (IOException | ClassNotFoundException e) {
+            System.err.println("ERROR: System recovery failed. Data may be corrupted.");
         }
     }
 }
 
 public class BookMyStayApp {
     public static void main(String[] args) {
-        System.out.println("--- BookMyStayApp: Version 11.0 (Concurrent Bookings) ---\n");
+        System.out.println("--- BookMyStayApp: Version 12.0 (Persistence & Recovery) ---\n");
 
-        // Shared Mutable State
-        Map<String, Integer> sharedInventory = new HashMap<>();
-        sharedInventory.put("Single", 1); // Only ONE room for multiple guests
+        PersistenceService persistence = new PersistenceService();
 
-        ConcurrentBookingProcessor processor = new ConcurrentBookingProcessor(sharedInventory);
+        // Current System State
+        Map<String, Integer> inventory = new HashMap<>();
+        List<String> history = new ArrayList<>();
 
-        // Simulate 3 guests trying to book the same 1 room simultaneously
-        Thread guest1 = new Thread(() -> processor.bookRoom("Guest_Alpha", "Single"));
-        Thread guest2 = new Thread(() -> processor.bookRoom("Guest_Beta", "Single"));
-        Thread guest3 = new Thread(() -> processor.bookRoom("Guest_Gamma", "Single"));
+        // 1. ATTEMPT RECOVERY
+        persistence.loadState(inventory, history);
 
-        guest1.start();
-        guest2.start();
-        guest3.start();
-
-        // Wait for all threads to finish
-        try {
-            guest1.join();
-            guest2.join();
-            guest3.join();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
+        // 2. SIMULATE ACTIVITY (If fresh start)
+        if (history.isEmpty()) {
+            System.out.println("First run detected. Adding initial data...");
+            inventory.put("Suite", 5);
+            history.add("Initial System Setup - Suite Inventory set to 5");
+        } else {
+            System.out.println("Current History Count: " + history.size());
         }
 
-        System.out.println("\nFinal Inventory State: " + sharedInventory);
+        // 3. SIMULATE SHUTDOWN & PERSISTENCE
+        System.out.println("\nShutting down system...");
+        persistence.saveState(inventory, history);
     }
 }
