@@ -4,7 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="43a90439-74c2-49d4-a524-a086ab9693ac" name="Changes" comment="" />
+    <list default="true" id="43a90439-74c2-49d4-a524-a086ab9693ac" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/src/BookMyStayApp.java" beforeDir="false" afterPath="$PROJECT_DIR$/src/BookMyStayApp.java" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -48,7 +50,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "feature/UC2",
+    "git-widget-placeholder": "feature/UC3",
     "kotlin-language-version-configured": "true"
   }
 }]]></component>
